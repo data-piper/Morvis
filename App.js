@@ -1,12 +1,11 @@
 import React from "react";
 import { Text, View, SafeAreaView } from "react-native";
+import AppNavigation from "./src/navigation";
 
 export default function app() {
+  
   return (
-    <SafeAreaView style={{ flex:0, backgroundColor: 'red' }}>
-      <Text>
-        Morvis
-      </Text>
-    </SafeAreaView>
+
+<AppNavigation/>
   )
 }

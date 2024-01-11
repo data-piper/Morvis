@@ -17,7 +17,8 @@ export default function WelcomeScreen() {
             </Text>
         </View>
         <View className="flex-row justify-center">
-        <Image source={require('../../assets/images/welcome.png')} style={{width: wp(55), height: wp(55)}}/>
+        <Image source={require('../../assets/images/welcome.png')}
+        style={{width: wp(55), height: wp(55)}}/>
         </View>
         <TouchableOpacity onPress={()=> navigation.navigate('Home')} className="bg-emerald-600 mx-5 p-4 rounded-2xl">
         <Text style={{fontSize: wp(6)}} className="text-center font-bold text-white"> Lets Start </Text>

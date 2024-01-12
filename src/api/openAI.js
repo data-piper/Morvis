@@ -25,6 +25,7 @@ export const apiCall = async(prompt, messages)=>{
         });
         console.log("data: ", res.data.choices[0].message);
         let isArt = res.data?.choices[0]?.message?.content;
+        isArt = isArt.trim();
         if(isArt.toLowerCase().includes('yes'))
         {
             console.log('dalle api call');

@@ -11,22 +11,18 @@ import {
 import Voice from '@react-native-community/voice';
 import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-native-responsive-screen';
 import Features from '../components/Features';
-//import { apiCall } from '../api/openAI';
-//import Tts from 'react-native-tts';
-import { dummyMessages } from '../constants';
 import { apiCall } from '../api/openAI';
+import Tts from 'react-native-tts';
+
 
 //export default function HomeScreen() {
-const App = () => {
-  const [result, setResult] = useState('');
+const App = () => {  
   const [messages, setMessages] = useState([]);
-  const [recording, setRecording] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [recording, setRecording] = useState(false);  
   const [speaking, setSpeaking] = useState(false);
-
-  const clear = ()=>{
-    setMessages([]);
-  }
+  const [result, setResult] = useState('');
+  const [loading, setLoading] = useState(false);
+  const scrollViewRef = useRef();
 
   const speechStartHandler = e => {
     console.log('speech start event', e);
@@ -47,12 +43,13 @@ const App = () => {
   }
   const startRecording = async ()=>{
     setRecording(true);
+    Tts.stop(); 
     try{
       await Voice.start('en-US');
     }catch(error) {
-      console.log('error during recording: ', error)
+      console.log('error during recording: ', error);
     }
-  }
+  };
   const stopRecording = async ()=>{
     try{
       await Voice.stop();
@@ -61,21 +58,34 @@ const App = () => {
     } catch (error) {
       console.log('error during recording: ', error);
     }
-  }
+  };
+  
+ const clear = ()=>{
+    Tts.stop();
+    setSpeaking(false);
+    setLoading(false);
+    setMessages([]);
+  };
 
- const fetchResponse = ()=>{
+  const fetchResponse = async ()=>{
     if(result.trim(). length>0){
       setLoading(true);
       let newMessages = [...messages];
       newMessages.push({role: 'user', content: result.trim()});
       setMessages([...newMessages]);
 
+      // scroll to the bottom of the view
+      updateScrollView();
       apiCall(result.trim(), newMessages).then(res=>{
         //console.log('got api data: ', res);
         setLoading(false);
         if(res.success){
           setMessages([...res.data]);
           setResult('');
+          updateScrollView();
+
+          // now play the response to user
+          startTextToSpeach(res.data[res.data.length-1]);
         }else{
           Alert.alert('Error', res.msg);
         }
@@ -83,6 +93,23 @@ const App = () => {
     }
   }
 
+  const updateScrollView = ()=>{
+    setTimeout(()=>{
+      scrollViewRef?.current?.scrollToEnd({ animated: true });
+    },200)
+  }
+
+  const startTextToSpeach = message=>{
+    if(!message.content.includes('https')){
+      setSpeaking(true);
+      // playing response with the voice id and voice speed
+      Tts.speak(message.content, {
+        iosVoiceId: 'com.apple.ttsbundle.Samantha-compact',
+        rate: 0.5,
+      });
+    }
+  }
+  
   const stopSpeaking = ()=>{
     Tts.stop();
     setSpeaking(false);
@@ -94,11 +121,17 @@ const App = () => {
     Voice.onSpeechResults = speechResultsHandler;
     Voice.onSpeechError = speechErrorHandler;
 
+    //text to speech events
+    Tts.setDefaultLanguage('en-IE');
+    Tts.addEventListener('tts-start', event => console.log('start', event));
+    Tts.addEventListener('tts-finish', event => {console.log('finish', event); setSpeaking(false)});
+    Tts.addEventListener('tts-cancel', event => console.log('cancel', event));
+
     return ()=>{
       //destroy the voice instance
       Voice.destroy().then(Voice.removeAllListeners);
-    }
-  },[])
+    };
+  }, []);
 
   console.log('result: ', result);
   return (
@@ -123,6 +156,7 @@ const App = () => {
               style={{height: hp(58)}}
               className="bg-neutral-200 rounded-3xl p-4">
               <ScrollView
+                   ref={scrollViewRef} 
               bounces={false}
               className="space-y-4"
               showsVerticalScrollIndicator={false}
@@ -172,7 +206,7 @@ const App = () => {
                   }
                   return (
                     <View>
-                      <Text>(message.count)</Text>
+                      <Text>(messages.count)</Text>
                     </View>
                   )
                 })
@@ -187,9 +221,16 @@ const App = () => {
           )
         }
         
+        {/* recording, clear and stop buttons */}
         <View className="flex justify-center items-center">
-        {
-          recording ? (
+          {
+           // loading? (
+           //   <Image 
+           //     source={require('../../assets/images/loading.gif')}
+           //     style={{width: hp(10), height: hp(10)}}
+           //   />
+          //  ):
+              recording ? (
                 <TouchableOpacity className="space-y-2" onPress={stopRecording}>
           {/** recording stop button */}
               <Image
@@ -208,23 +249,25 @@ const App = () => {
               />
           </TouchableOpacity>
           )
+         
         }
         {
           messages.length>0 && (
             <TouchableOpacity
             onPress={clear}
-            className="bg-neutral-400 rounded-3xl p-2 absolute right-10">
-              <Text className="text-white font-semibold">Clear</Text>
-              
-            </TouchableOpacity>
-          )
-        }
-        {
-          speaking && (
-            <TouchableOpacity
-              onPress={stopSpeaking}
-              className="bg-red-400 rounded-3xl p-2 absolute left-10">
-              <Text className="text-white font-semibold"> Stop</Text>
+                className="bg-neutral-400 rounded-3xl p-2 absolute right-10"
+              >
+                <Text className="text-white font-semibold">Clear</Text>
+              </TouchableOpacity>
+            )
+          }
+          {
+            speaking && (
+              <TouchableOpacity 
+                onPress={stopSpeaking} 
+                className="bg-red-400 rounded-3xl p-2 absolute left-10"
+              >
+                <Text className="text-white font-semibold">Stop</Text>
             </TouchableOpacity>
           )
         }
